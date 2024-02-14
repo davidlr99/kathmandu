@@ -26,7 +26,7 @@ export function setRefreshHooks() {
 
 }
 
-async function refreshData() {
+export async function refreshData() {
 
     var oldStorage = get(kathmandu)
     oldStorage.finishedLoading = false

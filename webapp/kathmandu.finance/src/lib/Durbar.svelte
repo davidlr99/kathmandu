@@ -9,6 +9,9 @@
   import kathmanduAbi from "$lib/abis/Kathmandu.json";
   import defaultErc20Abi from "$lib/abis/ERC20.json";
 
+  import { refreshData } from "$lib/manageData.js";
+
+
   import {
     defaultEvmStores,
     connected,
@@ -34,6 +37,8 @@
   var userWrapUnwrapAmount;
   var userStakeUnstakeAmount;
   var userWrapUnwrapSelected;
+
+  var wrapUnwrapStatus = "Approve";
 
   $: if ($kathmandu.finishedLoading) {
     baseToken = $kathmandu.associatedTokens[chain][durbarName].baseToken[1][0];
@@ -82,6 +87,8 @@
         defaultErc20Abi.abi
       );
 
+      wrapUnwrapStatus = "Approving...";
+
       await $contracts.myTempErc20.methods
         .approve(
           $kathmandu.kathmanduContracts[chain],
@@ -90,12 +97,51 @@
         .send({
           from: $selectedAccount,
         });
+
+      wrapUnwrapStatus = "Wrapping...";
+
       await $contracts.myKathmandu.methods
         .wrapDurbar(durbarName, $web3.utils.toWei(amount, "ether"))
         .send({
           from: $selectedAccount,
         });
+
+      wrapUnwrapStatus = "Wrapped...";
+
+    } else if (userWrapUnwrapSelected == "Unwrap") {
+      await defaultEvmStores.attachContract(
+        "myTempErc20",
+        $kathmandu.associatedTokens[chain][durbarName].wrapToken[0],
+        defaultErc20Abi.abi
+      );
+
+      wrapUnwrapStatus = "Approving...";
+
+      await $contracts.myTempErc20.methods
+        .approve(
+          $kathmandu.kathmanduContracts[chain],
+          $web3.utils.toWei(amount, "ether")
+        )
+        .send({
+          from: $selectedAccount,
+        });
+
+      wrapUnwrapStatus = "Unwrapping...";
+
+      await $contracts.myKathmandu.methods
+        .unwrapDurbar(durbarName, $web3.utils.toWei(amount, "ether"))
+        .send({
+          from: $selectedAccount,
+        });
+
+      wrapUnwrapStatus = "Unwrapped!";
     }
+
+    refreshData()
+
+    setTimeout(function () {
+      wrapUnwrapStatus = "Approve";
+    }, 5000);
   }
 </script>
 
@@ -168,7 +214,7 @@
       >
         <div class="flex items-center justify-between w-full text-sm p-1 gap-5">
           <div>Collateral backing ratio</div>
-          <div>1 {wrapToken} = {1.0 / parseFloat(wrapRatio)} {baseToken}</div>
+          <div>1 {wrapToken} = {parseFloat(wrapRatio).toFixed(5)} {baseToken}</div>
         </div>
       </div>
 
@@ -178,7 +224,9 @@
           name="price"
           id="price"
           class="w-full rounded-l-md p-2 outline-none bg-white"
-          placeholder={"0 " + baseToken}
+          placeholder={userWrapUnwrapSelected == "Wrap"
+            ? "0 " + baseToken
+            : "0 " + wrapToken}
           bind:value={userWrapUnwrapAmount}
         />
         <div class="bg-white p-2">
@@ -188,8 +236,6 @@
           >
         </div>
         <select
-          id="currency"
-          name="currency"
           class="h-full p-2 outline-none bg-white"
           bind:value={userWrapUnwrapSelected}
         >
@@ -199,7 +245,7 @@
         <button
           on:click={wrapOrUnwrapAction}
           class="rounded-r-full bg-gradient-to-r from-white to-slate-300 text-black py-2 px-4 hover:bg-slate-100"
-          >Approve</button
+          >{wrapUnwrapStatus}</button
         >
       </div>
       <div class="flex flex-row w-full justify-center mt-3 mb-1">
@@ -234,11 +280,7 @@
             >max.</button
           >
         </div>
-        <select
-          id="currency"
-          name="currency"
-          class="h-full p-2 outline-none bg-white"
-        >
+        <select class="h-full p-2 outline-none bg-white">
           <option>Stake</option>
           <option>Unstake</option>
           <option>Claim yield</option>
