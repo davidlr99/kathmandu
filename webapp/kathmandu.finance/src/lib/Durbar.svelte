@@ -11,7 +11,6 @@
 
   import { refreshData } from "$lib/manageData.js";
 
-
   import {
     defaultEvmStores,
     connected,
@@ -40,6 +39,11 @@
 
   var wrapUnwrapStatus = "Approve";
 
+  var lpTokenBalance = "0";
+  var lpTokenStaked = "0";
+  var lpRewards = "0";
+  var userStakeOrUnstakeSelected;
+
   $: if ($kathmandu.finishedLoading) {
     baseToken = $kathmandu.associatedTokens[chain][durbarName].baseToken[1][0];
     baseTokenLongName =
@@ -54,6 +58,15 @@
     if ($userConnection.connected && $userData.userDataLoaded) {
       baseTokenBalance = $userData.balances[chain][durbarName][baseToken];
       wrapTokenBalance = $userData.balances[chain][durbarName][wrapToken];
+
+      lpTokenBalance =
+        $userData.balances[chain][durbarName][
+          $kathmandu.associatedTokens[chain][durbarName].liqToken[1][0]
+        ];
+
+      lpTokenStaked = $userData.balances[chain][durbarName]["staked-lp"];
+
+      lpRewards = $userData.lprewards[chain][durbarName];
     }
   }
 
@@ -66,6 +79,18 @@
     }
     if (userWrapUnwrapSelected == "Unwrap") {
       userWrapUnwrapAmount = wrapTokenBalance;
+    }
+  }
+
+  function setMaxStakeUnstake() {
+    if (!$userConnection.connected || !$userData.userDataLoaded) {
+      return;
+    }
+    if (userStakeOrUnstakeSelected == "Stake") {
+      userStakeUnstakeAmount = lpTokenBalance;
+    }
+    if (userStakeOrUnstakeSelected == "Unstake") {
+      userStakeUnstakeAmount = lpTokenStaked;
     }
   }
 
@@ -107,7 +132,6 @@
         });
 
       wrapUnwrapStatus = "Wrapped...";
-
     } else if (userWrapUnwrapSelected == "Unwrap") {
       await defaultEvmStores.attachContract(
         "myTempErc20",
@@ -137,7 +161,7 @@
       wrapUnwrapStatus = "Unwrapped!";
     }
 
-    refreshData()
+    refreshData();
 
     setTimeout(function () {
       wrapUnwrapStatus = "Approve";
@@ -214,7 +238,10 @@
       >
         <div class="flex items-center justify-between w-full text-sm p-1 gap-5">
           <div>Collateral backing ratio</div>
-          <div>1 {wrapToken} = {parseFloat(wrapRatio).toFixed(5)} {baseToken}</div>
+          <div>
+            1 {wrapToken} = {parseFloat(wrapRatio).toFixed(5)}
+            {baseToken}
+          </div>
         </div>
       </div>
 
@@ -255,15 +282,23 @@
         <div class="text-xs">
           Stake LP-tokens from the {baseToken}/{wrapToken} Uniswap pool to earn {stakeAPY}%
           additional yield. Unstake possible at all times. No stake or unstake
-          fees. Yield can be claimed in {baseToken} here.
+          fees. Yield can be claimed in {baseToken} by unstaking here.
         </div>
       </div>
       <div
         class="flex flex-col items-start w-full py-2 px-3 bg-slate-300 rounded-md"
       >
         <div class="flex items-center justify-between w-full text-sm p-1 gap-5">
+          <div>Your LP-token balance</div>
+          <div>{parseFloat(lpTokenBalance).toLocaleString()}</div>
+        </div>
+        <div class="flex items-center justify-between w-full text-sm p-1 gap-5">
+          <div>Your staked LP-token</div>
+          <div>{parseFloat(lpTokenStaked).toLocaleString()}</div>
+        </div>
+        <div class="flex items-center justify-between w-full text-sm p-1 gap-5">
           <div>Your LP {baseToken} rewards</div>
-          <div>0</div>
+          <div>{parseFloat(lpRewards).toLocaleString()}</div>
         </div>
       </div>
       <div class="flex flex-row items-center w-full text-sm">
@@ -276,14 +311,14 @@
           bind:value={userStakeUnstakeAmount}
         />
         <div class="bg-white p-2">
-          <button class="bg-grey bg-slate-300 rounded-md text-xs px-1"
+          <button on:click={setMaxStakeUnstake} class="bg-grey bg-slate-300 rounded-md text-xs px-1"
             >max.</button
           >
         </div>
-        <select class="h-full p-2 outline-none bg-white">
+        <select bind:value={userStakeOrUnstakeSelected} class="h-full p-2 outline-none bg-white">
           <option>Stake</option>
           <option>Unstake</option>
-          <option>Claim yield</option>
+          <!-- <option>Claim yield</option> -->
         </select>
         <button
           class="rounded-r-full bg-gradient-to-r from-white to-slate-300 text-black py-2 px-4 hover:bg-slate-100"

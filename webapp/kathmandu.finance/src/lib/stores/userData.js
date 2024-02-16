@@ -10,7 +10,8 @@ export const userConnection = writable({
 });
 
 export const userData = writable({
-    balances: {}
+    balances: {},
+    lprewards: {}
 });
 
 

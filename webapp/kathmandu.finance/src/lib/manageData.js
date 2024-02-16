@@ -111,6 +111,22 @@ export async function refreshData() {
                 }
 
             }
+
+            var reward = await get(contracts).myKathmandu.methods.getStakedLPandRewardInfoForUser(durbarName,get(selectedAccount)).call()
+            console.log("Reward: "+reward)
+            var bnReward = new BN(reward[1])
+            var bnLPStaked = new BN(reward[0])
+            oldStorage.balances[defaultChain][durbarName]["staked-lp"] = get(web3).utils.fromWei(bnLPStaked, "ether") 
+
+            var oldStorage = get(userData)
+            if (oldStorage.lprewards[defaultChain] == undefined) {
+                oldStorage.lprewards[defaultChain] = {}
+            }
+
+            oldStorage.lprewards[defaultChain][durbarName] = get(web3).utils.fromWei(bnReward, "ether")
+            userData.set(oldStorage)
+
+
             console.log(get(userData))
         }
 
