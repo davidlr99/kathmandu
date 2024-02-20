@@ -32,16 +32,20 @@ export async function refreshData() {
     oldStorage.finishedLoading = false
     kathmandu.set(oldStorage)
 
+
+
     var defaultChain = get(userConnection).defaultChain
     if (get(userConnection).connected) {
         defaultChain = Object.keys(get(kathmandu).chainIds).find(k => get(kathmandu).chainIds[k] === get(userConnection).connectedToChainId);
     }
-    console.log(defaultChain)
+    if(defaultChain == undefined){
+        return
+    }
 
     await defaultEvmStores.attachContract('myKathmandu', get(kathmandu).kathmanduContracts[defaultChain], kathmanduAbi.abi)
-    console.log("Jo")
+
     var availableDurbars = get(kathmandu).durbars[defaultChain]
-    console.log("Jo2")
+    console.log(availableDurbars +" at chain: "+defaultChain)
 
     for (var i in availableDurbars) {
         var durbarName = availableDurbars[i]
@@ -59,7 +63,7 @@ export async function refreshData() {
 
                 await defaultEvmStores.attachContract('myTempErc20', contract, defaultErc20Abi.abi)
                 var symbol = await get(contracts).myTempErc20.methods.symbol().call()
-                var name = await get(contracts).myTempErc20.methods.name().call()
+                var longname = await get(contracts).myTempErc20.methods.name().call()
 
                 var name;
                 if(n == 0){
@@ -70,7 +74,7 @@ export async function refreshData() {
                     name = "liqToken"
                 }
 
-                associatedTokens[name] = [contract, [symbol,name]]
+                associatedTokens[name] = [contract, [symbol,longname]]
 
             }
             var currentStorage = get(kathmandu)
@@ -146,12 +150,15 @@ export async function refreshData() {
         if(oldStorage.apys[defaultChain] == undefined){
             oldStorage.apys[defaultChain] = {}
         }
+        console.log("Set "+defaultChain+" apy structure")
         oldStorage.apys[defaultChain][durbarName] = {'wrapAPY': 69.0, 'stakeAPY':420.0}
         kathmandu.set(oldStorage)
 
 
 
     }
+
+    console.log("Setting finished loading...")
 
     var oldStorage = get(kathmandu)
     oldStorage.finishedLoading = true

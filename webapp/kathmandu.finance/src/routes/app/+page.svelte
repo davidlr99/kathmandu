@@ -21,6 +21,8 @@
   var averageStakeApy = "..."
   var durbarsC = "..."
   $: if ($kathmandu.finishedLoading) {
+    console.log("Default chain: "+defaultChain)
+    console.log("finished loading? : "+$kathmandu.finishedLoading)
 
     let durbarsCount = Object.keys($kathmandu.apys[defaultChain]).length
     durbarsC = durbarsCount

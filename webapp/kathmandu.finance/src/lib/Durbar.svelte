@@ -43,6 +43,7 @@
   var lpTokenStaked = "0";
   var lpRewards = "0";
   var userStakeOrUnstakeSelected;
+  var stakeOrUnstakeStatus = "Approve";
 
   $: if ($kathmandu.finishedLoading) {
     baseToken = $kathmandu.associatedTokens[chain][durbarName].baseToken[1][0];
@@ -165,7 +166,62 @@
 
     setTimeout(function () {
       wrapUnwrapStatus = "Approve";
+      refreshData();
     }, 5000);
+  }
+
+  async function stakeOrUnstakeAction() {
+    var amount = parseFloat(userStakeUnstakeAmount);
+    if (
+      amount <= 0 ||
+      !$userConnection.connected ||
+      !$userData.userDataLoaded
+    ) {
+      return;
+    }
+
+    if (userStakeOrUnstakeSelected == "Stake") {
+      await defaultEvmStores.attachContract(
+        "myTempErc20",
+        $kathmandu.associatedTokens[chain][durbarName].liqToken[0],
+        defaultErc20Abi.abi
+      );
+
+      stakeOrUnstakeStatus = "Approving...";
+
+      await $contracts.myTempErc20.methods
+        .approve(
+          $kathmandu.kathmanduContracts[chain],
+          $web3.utils.toWei(amount, "ether")
+        )
+        .send({
+          from: $selectedAccount,
+        });
+
+      stakeOrUnstakeStatus = "Staking...";
+
+      await $contracts.myKathmandu.methods
+        .stakeLiq(durbarName, $web3.utils.toWei(amount, "ether"))
+        .send({
+          from: $selectedAccount,
+        });
+    }
+
+    if (userStakeOrUnstakeSelected == "Unstake") {
+      stakeOrUnstakeStatus = "Unstaking...";
+      await $contracts.myKathmandu.methods
+        .unStakeLiq(durbarName, $web3.utils.toWei(amount, "ether"))
+        .send({
+          from: $selectedAccount,
+        });
+    }
+
+    setTimeout(function () {
+      stakeOrUnstakeStatus = "Approve";
+      refreshData();
+    }, 5000);
+
+    refreshData();
   }
 </script>
 
@@ -227,7 +283,7 @@
       >
         <div class="text-xs">
           Wrap your {baseToken} into {wrapToken} to earn yield ({wrapAPY}% APR). {wrapToken}
-          can also be aquired on Uniswap. Every {wrapToken} is always backed by {baseToken}
+          can also be aquired on Thruster. Every {wrapToken} is always backed by {baseToken}
           and can be unwraped at all time. Yield is earned as collateral backing
           ratio goes up.
         </div>
@@ -239,7 +295,7 @@
         <div class="flex items-center justify-between w-full text-sm p-1 gap-5">
           <div>Collateral backing ratio</div>
           <div>
-            1 {wrapToken} = {parseFloat(wrapRatio).toFixed(5)}
+            1 {wrapToken} = {parseFloat(wrapRatio).toFixed(4)}
             {baseToken}
           </div>
         </div>
@@ -280,7 +336,7 @@
       </div>
       <div class="flex items-center justify-between w-full text-sm p-2 gap-5">
         <div class="text-xs">
-          Stake LP-tokens from the {baseToken}/{wrapToken} Uniswap pool to earn {stakeAPY}%
+          Stake LP-tokens from the {baseToken}/{wrapToken} Thruster pool (v2) to earn {stakeAPY}%
           additional yield. Unstake possible at all times. No stake or unstake
           fees. Yield can be claimed in {baseToken} by unstaking here.
         </div>
@@ -311,18 +367,23 @@
           bind:value={userStakeUnstakeAmount}
         />
         <div class="bg-white p-2">
-          <button on:click={setMaxStakeUnstake} class="bg-grey bg-slate-300 rounded-md text-xs px-1"
-            >max.</button
+          <button
+            on:click={setMaxStakeUnstake}
+            class="bg-grey bg-slate-300 rounded-md text-xs px-1">max.</button
           >
         </div>
-        <select bind:value={userStakeOrUnstakeSelected} class="h-full p-2 outline-none bg-white">
+        <select
+          bind:value={userStakeOrUnstakeSelected}
+          class="h-full p-2 outline-none bg-white"
+        >
           <option>Stake</option>
           <option>Unstake</option>
           <!-- <option>Claim yield</option> -->
         </select>
         <button
+          on:click={stakeOrUnstakeAction}
           class="rounded-r-full bg-gradient-to-r from-white to-slate-300 text-black py-2 px-4 hover:bg-slate-100"
-          >Approve</button
+          >{stakeOrUnstakeStatus}</button
         >
       </div>
     </div>

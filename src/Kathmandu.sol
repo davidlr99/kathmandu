@@ -64,8 +64,8 @@ contract Kathmandu {
         uint256 feeRateToLPsIn100,
         uint256 feeRateToDevIn100
     ) public {
-        //require(msg.sender == owner);
-        //require(supportedDurbars[durbarName].exists != true, "Durbar exists already.");
+        require(msg.sender == owner);
+        require(supportedDurbars[durbarName].exists != true, "Durbar exists already.");
 
         Durbar memory newDurbar = Durbar(
             baseToken,
@@ -85,6 +85,11 @@ contract Kathmandu {
             block.timestamp
         );
         supportedDurbars[durbarName] = newDurbar;
+    }
+
+    function updateLiqToken(string memory durbarName, address liqToken) public {
+        require(msg.sender == owner);
+        supportedDurbars[durbarName].liqToken = liqToken;
     }
 
     function calculateFees(uint256 amount, string memory durbarName) internal returns (uint256[3] memory) {
@@ -257,9 +262,8 @@ contract Kathmandu {
     }
 
     function getWrapTokenRatioForDurbar(string memory durbarName) public view returns (uint256) {
-
-        if(supportedDurbars[durbarName].mintedWrap == 0 || supportedDurbars[durbarName].balanceBaseToken == 0){
-            return  1 * 10 ** 18;
+        if (supportedDurbars[durbarName].mintedWrap == 0 || supportedDurbars[durbarName].balanceBaseToken == 0) {
+            return 1 * 10 ** 18;
         }
         uint256 amount = Math.mulDiv(
             1 * 10 ** 18, supportedDurbars[durbarName].mintedWrap, supportedDurbars[durbarName].balanceBaseToken
@@ -267,8 +271,12 @@ contract Kathmandu {
         return amount;
     }
 
-    function getTotalLPrewardsAndStakedLPAmountForDurbar(string memory durbarName) public view returns (uint256[2] memory) {
-        return [supportedDurbars[durbarName].accumulatedLPfees,supportedDurbars[durbarName].t];
+    function getTotalLPrewardsAndStakedLPAmountForDurbar(string memory durbarName)
+        public
+        view
+        returns (uint256[2] memory)
+    {
+        return [supportedDurbars[durbarName].accumulatedLPfees, supportedDurbars[durbarName].t];
     }
 
     function getCreationTimeForDurbar(string memory durbarName) public view returns (uint256) {
